@@ -75,6 +75,11 @@ void print(std::string message_pt1, int iterator, std::string message_pt2, doubl
     std::cout << std::fixed << std::setprecision(precision) << number << std::endl;
 }
 
+void print(std::string message, long number)
+{
+    std::cout << message << number << std::endl;
+}
+
 void print(std::string message, double number)
 {
     std::cout << message << number << std::endl;
@@ -157,8 +162,18 @@ void delete_log(std::ofstream& out)
 // MATH HELPERS
 void round_to_precision(double& number, int precision)
 {
-    number = (int)(number * pow(10,precision) + 0.5);
+    number = (long)(number * pow(10,precision) + 0.5);
     number /= pow(10,precision);
+}
+
+long digit_count(long number)
+{
+    if(number == 0)
+        return 1;
+    else if(number > 0)
+        return trunc(log10(number)) + 1;
+    else
+        return -INT64_MAX;
 }
 
 // PROBABILITIY HELPERS

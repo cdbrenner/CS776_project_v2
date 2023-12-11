@@ -62,18 +62,18 @@ class Individual
         // TSP
         int get_id();
         void set_id(int id);
-        void init_TSP(int random_seed, int srand_offset);
+        void init_TSP(int random_seed, long srand_offset);
         
         //FUNCTIONS FOR TESTING PROBABILITY ACCURACY
         double get_mutation_percentage();
 
-        void init(int random_seed, int srand_offset);
+        void init(int random_seed, long srand_offset);
         void copy_individual_data(const Individual& individual_copy);
 
         // NORMAL MUTATE: COMMENTED OUT FOR CURRENT TSP PROGRAM
-        // void mutate(double probability, int random_seed, int srand_offset);
+        // void mutate(double probability, int random_seed, long srand_offset);
         // TSP
-        void swap_mutate(double probability, int random_seed, int srand_offset);
+        void swap_mutate(double probability, int random_seed, long srand_offset);
 
         //TEST FUNCTIONS
         void print_ind();

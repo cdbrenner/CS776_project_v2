@@ -15,64 +15,49 @@
 int main(int argc, char* argv[])
 {
 
-    // TEST
-    // Options opt;
-    // opt.chromosome_length = 6;
-    // opt.population_size = 100;
-    // opt.selection_pressure = 1.9;
-    // opt.mutation_rate = .05;
-    // opt.random_seed = time(NULL);
+    int population_size = 200;
+    double m_rate = 0.01;
+    double x_rate = 1;
+    int chrom_len = 48;
+    std::string filename = "raw_data/gr48.tsp";
+    for(int i = 0; i < 30000; i ++)
+    {
+        try
+        {
+            // TEST
+            // print("MAIN:: BEFORE GA INIT");
 
-    // Population test(opt);
-    // int n = 99;
-    // for(int i = 0; i < 100; i++)
-    // {
-    //     if(i%2 == 0)
-    //         test.get_members()[i].set_fitness(i*2);
-    //     else
-    //     {
-    //         test.get_members()[i].set_fitness(n*2);
-    //         n--;
-    //     }
-    // }
+            GA ga(population_size, m_rate, x_rate, chrom_len, i, filename);
 
-    // int total_fitness = 0;
-    // for(int i = 0; i < 100; i++)
-    //     total_fitness += test.get_members()[i].get_fitness();
+            // TEST
+            // print("MAIN:: AFTER GA INIT");
 
-    // print("total_fitness = ", total_fitness);
-    // endl();
+            // TEST
+            // long a = digit_count(ga.get_options().random_seed);
+            // long b = pow(10,a);
+            // print("random_seed = ", (long)ga.get_options().random_seed);
+            // print("srand_offset = ", b);
+            // print("sum = ", ga.get_options().random_seed+b);
+            // cin();
 
-    // test.set_member_ids();
-    // test.sort_member_ids_by_fitness(opt.random_seed, 0);
-    // print("Before rank conversion");
-    // test.print_member_ids();
-    // endl();
-    // print("After rank conversion");
-    // test.convert_member_ids_fitness_to_rank();
-    // test.print_member_ids();
-    // endl();
+            ga.run_genitor_on_imGui(i*pow(10,digit_count(ga.get_options().random_seed)));
+            
+            // TEST
+            if(!population_copy_achieved(*ga.get_parent()))
+            {
+                print("iteration = ", i);
+                return EXIT_FAILURE;
+            }
+            // cin();
+        }
+        catch(std::string error_message)
+        {
+            print(error_message);
+            return 0;
+        }
+    }
 
-    // test.set_average_rank_before_scaling();
-    // std::cout << "average = " << test.get_average_before_scaling() << std::endl;
-    // for(int i = 0; i < 100000; i++)
-    // {
-    //     int index_1 = test.rank_selection(i*2);
-    //     int index_2 = test.rank_selection(i*2 + 1);
-
-    //     // TEST
-    //     // print("index_1 = ", index_1);
-    //     // print("index_2 = ", index_2);
-    //     // endl();
-
-    //     test.rank_selection_stats(index_1, index_2, 2);
-    // }
-
-    // test.print_selection_count_vertical(2);
-    // endl();
-    // test.print_rand_count_vertical(4);
-
-    // return 0;
+    return 0;
     // END TEST
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -421,12 +406,14 @@ int main(int argc, char* argv[])
 
         try
         {
-            GA ga(argc, argv, j, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream, tsp_filename);
+            GA ga(j, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream, tsp_filename);
             ga.set_reporting_option(report_option);
             
             try
             {
                 ga.set_tsp_data_option(tsp_filename);
+                if(ga.get_eval_option() == 2 || ga.get_eval_option() == 3)
+                    ga.write_EUC2Dcoords_to_file(TSP_tour_name);
                 
                 // UNIT TEST: Symmetric TSP Matrix testing
                 // if(!symmetric_matrix(ga.get_options().tsp_data,ga.get_options().chromosome_length))
@@ -494,7 +481,9 @@ int main(int argc, char* argv[])
     if(report_option == 1)
     {
         std::ofstream out;
-        GA ga(argc, argv, runs, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, out, tsp_filename);
+        GA ga(runs, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, out, tsp_filename);
         ga.report_averager(runs);
     }
+    std::string tsp_coords_filename = TSP_tour_name + "_coords.txt";
+    std::remove(tsp_coords_filename.c_str());
 }

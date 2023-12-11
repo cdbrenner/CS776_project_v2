@@ -18,3 +18,5 @@ bool duplicate_values_in_string(Individual&, int chromosome_length);
 bool symmetric_matrix(int** tour_data, int chromosome_length);
 
 bool identical_matrices(int tour_data_1[][48], int tour_data_2[][48], int chromosome_length);
+
+bool population_copy_achieved(Population& parent);

@@ -16,6 +16,7 @@ void print(std::string, int);
 void print(std::string, int, std::string, int, std::string, double);
 void print(std::string, int, std::string, double);
 void print(std::string, int, std::string, double, int);
+void print(std::string, long);
 void print(std::string, double);
 void print(std::string, double, int);
 void print(int, std::string);
@@ -36,6 +37,7 @@ void delete_log(std::ofstream&);
 
 // MATH HELPERS
 void round_to_precision(double& number, int precision);
+long digit_count(long number);
 
 //PROBABILITY HELPERS
 int flip(float probability, int random_seed, int offset);

@@ -1,6 +1,6 @@
 #include "evaluate.h"
 
-void eval(Individual& individual, Eval_results& results, int** tour_data, int choice, int random_seed, int srand_offset, int eval_option)
+void eval(Individual& individual, Eval_results& results, int** tour_data, int choice, int random_seed, long srand_offset, int eval_option)
 {
     try
         // {TSP(individual, tour_data, tour _count, choice, results);}

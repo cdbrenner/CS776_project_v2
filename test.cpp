@@ -255,3 +255,47 @@ bool identical_matrices(int tour_data_1[][48], int tour_data_2[][48], int chromo
     
     return true;
 }
+
+bool population_copy_achieved(Population& parent)
+{
+    std::ifstream in("population.txt");
+    Population temp(*parent.get_options(), in);
+
+    if(temp.get_options()->population_size != parent.get_options()->population_size)
+    {
+        print("Population copy failed because options.population_size not passed correctly.");
+        return false;
+    }
+    if(temp.get_options()->chromosome_length != parent.get_options()->chromosome_length)
+    {
+        print("Population copy failed because options.chromosome_length not passed correctly.");
+        return false;
+    }
+
+    for(int i = 0; i < parent.get_options()->population_size; i++)
+    {
+        for(int j = 0; j < parent.get_options()->chromosome_length; j++)
+        {
+            if(temp.get_members()[i].get_chromosome()[j] != parent.get_members()[i].get_chromosome()[j])
+            {
+                print("Population copy failed passing chromosome correctly.");
+                return false;
+            }
+        }
+        double temp_d = parent.get_members()[i].get_fitness();
+        round_to_precision(temp_d, 15);
+        if(temp.get_members()[i].get_fitness() != temp_d)
+        {
+            print("Population copy failed passing fitness correctly.");
+            std::cout << std::fixed << std::setprecision(15) << temp.get_members()[i].get_fitness() << " != " << parent.get_members()[i].get_fitness() << std::endl;
+            return false;
+        }
+        if(temp.get_members()[i].get_objective_value() != parent.get_members()[i].get_objective_value())
+        {
+            print("Population copy failed passing objective value correctly.");
+            return false;
+        }
+    }
+
+    return true;
+}

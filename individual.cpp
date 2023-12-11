@@ -144,7 +144,7 @@ int Individual::get_id()
     return id;
 }
 
-void Individual::init_TSP(int random_seed, int srand_offset)
+void Individual::init_TSP(int random_seed, long srand_offset)
 {
     int fail_count = 0;
     for(int i = 0; i < chromosome_length; i++)
@@ -168,7 +168,7 @@ void Individual::init_TSP(int random_seed, int srand_offset)
     }
 }
 
-void Individual::init(int random_seed, int srand_offset)
+void Individual::init(int random_seed, long srand_offset)
 {
     for(int i = 0; i < chromosome_length; i++)
     {
@@ -180,7 +180,7 @@ void Individual::init(int random_seed, int srand_offset)
 }
 
 // NORMAL MUTATE: COMMENTED OUT FOR CURRENT TSP PROGRAM
-// void Individual::mutate(double probability, int random_seed, int srand_offset)
+// void Individual::mutate(double probability, int random_seed, long srand_offset)
 // {
 //     mutate_count = 0;
 //     for(int i = 0; i < chromosome_length; i++)
@@ -194,7 +194,7 @@ void Individual::init(int random_seed, int srand_offset)
 //     }
 // }
 
-void Individual::swap_mutate(double probability, int random_seed, int srand_offset)
+void Individual::swap_mutate(double probability, int random_seed, long srand_offset)
 {
     swap_mutate_count = 0;
     int fail_count = 0;

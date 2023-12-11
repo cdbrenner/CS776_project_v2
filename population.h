@@ -51,7 +51,8 @@ class Population
     public:
         Population();
         Population(Options&);
-        Population(Options&, int);
+        Population(Options&, long srand_offset);
+        Population(Options&, std::ifstream& input_file_stream);
         Population(Population& copy_population);
         ~Population();
 
@@ -60,7 +61,7 @@ class Population
         void init_transform_data(int row);
         void set_options(Options&);
         void set_members();
-        void set_members(int);
+        void set_members(long srand_offset);
         void set_members_ptr(Individual*);
         void copy_members_and_update_id(const Population& population_copy);
         void copy_population(const Population& population_copy);
@@ -86,38 +87,42 @@ class Population
         // void set_member_chosen_count();
         void get_member_chosen_stats();
 
-        void evaluate(int choice, int** tsp_data, int random_seed, int srand_offset, int eval_option);
-        void evaluate_single(Individual&, int choice, int** tsp_data, int random_seed, int srand_offset, int eval_option);
+        void evaluate(int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option);
+        void evaluate_single(Individual&, int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option);
         void stats(int& total_super_individuals, int& total_semi_super_individuals);
         void report(int generation, int option, int total_super_individuals, int total_semi_super_individuals, bool extinction_event);
-        void generation(Population*& child, int srand_offset);
-        void genitor(int srand_offset, int eval_option);
-        void CHC_generation(Population* child, Population *temp, int srand_offset);
-        int proportional_selection(int srand_offset);
-        void xover_mutate(Individual*,Individual*,Individual*,Individual*, int);
+        void report_single();
+        void generation(Population*& child, long srand_offset);
+        void genitor(long srand_offset, int eval_option);
+        void CHC_generation(Population* child, Population *temp, long srand_offset);
+        int proportional_selection(long srand_offset);
+        void xover_mutate(Individual*,Individual*,Individual*,Individual*, long srand_offet);
         
         // TSP
         void set_member_ids();
         double** get_member_ids();
-        void sort_member_ids_by_fitness(int random_seed, int srand_offset);
+        void sort_member_ids_by_fitness(int random_seed, long srand_offset);
         void convert_member_ids_fitness_to_rank();
         void selection_pressure_scaling();
         int average_rank();
-        void rank_selection_prep(int srand_offset);
-        int rank_selection(int srand_offset); // IMPLEMENTED SO THAT EQUAL FITNESS MEMBERS HAVE THE SAME RANK. THEREFORE, EXPECT SLOW CONVERGENCE.
-        void edge_recombination(Individual*, Individual*, Individual&, int);
+        void rank_selection_prep(long srand_offset);
+        int rank_selection(long srand_offset); // IMPLEMENTED SO THAT EQUAL FITNESS MEMBERS HAVE THE SAME RANK. THEREFORE, EXPECT SLOW CONVERGENCE.
+        void edge_recombination(Individual*, Individual*, Individual&, long srand_offset);
         void build_edge_map(Individual* parent_1, Individual* parent_2, int edge_map[][5]);
         void rebuild_edge_map(int edge_map[][5], int city_to_remove, int previous_city);
         bool edge_check(int edge_map[][5], int city, int edge);
         
         
-        int one_point_xover(Individual*&,Individual*&,Individual*&,Individual*&, int);
-        void pmx(Individual*,Individual*,Individual*,Individual*, int);
-        void scramble_mutation(Individual&, int srand_offset);
+        int one_point_xover(Individual*&,Individual*&,Individual*&,Individual*&, long srand_offset);
+        void pmx(Individual*,Individual*,Individual*,Individual*, long srand_offset);
+        void scramble_mutation(Individual&, long srand_offset);
 
         // STATS
         void rank_selection_stats(int parent_1_index, int parent_2_index, int precision);
         void rand_stats(double number, int precision);
+
+        // FILE IO
+        void write_population_to_file();
 
         //TEST
         void print_pop();

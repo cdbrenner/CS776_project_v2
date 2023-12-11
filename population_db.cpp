@@ -84,41 +84,6 @@ Population::Population(Options& opt, long srand_offset)
     }
 }
 
-Population::Population(Options& opt, std::ifstream& in)
-{
-    // TEST
-    // print("POPULATION::POPULATION(ifstream)");
-    
-    options = &opt;
-
-    members = new Individual[options->population_size];
-
-    std::string temp;
-    for(int i = 0; i < options->population_size; i++)
-    {
-        members[i].set_chromosome_length(options->chromosome_length);
-        members[i].set_id(i);
-        for(int j = 0; j < options->chromosome_length; j++)
-        {
-            in >> temp;
-            members[i].get_chromosome()[j] = std::stoi(temp);
-        }
-        in >> temp;
-        members[i].set_fitness(std::strtod(temp.c_str(), NULL));
-        in >> temp;
-        members[i].set_objective_value(std::strtod(temp.c_str(), NULL));
-        
-        // TEST
-        // print("temp = " + temp);
-        // print("members[",i,"] = ",members[i].get_fitness());
-
-        // TEST
-        // std::cout << "members["<< i <<"]: ";
-        // members[i].print_ind();
-        // cin();
-    } 
-}
-
 Population::Population(Population& rhs)
 {
     options = rhs.options;
@@ -133,7 +98,8 @@ Population::Population(Population& rhs)
 
 Population::~Population()
 {
-    delete[] members;
+    if(members != nullptr)
+        delete[] members;
 }
 
 Eval_results& Population::get_results()
@@ -511,17 +477,6 @@ void Population::report(int generation, int option, int total_super_individuals,
     out_2.close();
 }
 
-void Population::report_single()
-{
-    std::ofstream out("stats.csv");
-    out << options->GA_iteration << ",\t\t" << (int)min_objective << ",\t\t" << (int)average_objective << ",\t\t";
-    for(int i = 0; i < options->chromosome_length; i++)
-    {
-        out << members[max_fitness_member_index].get_chromosome()[i] << " ";
-    }
-    out << std::endl;
-}
-
 void Population::generation(Population*& child, long srand_offset)
 {
     int parent_index_1 = 0;
@@ -576,14 +531,26 @@ void Population::generation(Population*& child, long srand_offset)
 
 void Population::genitor(long srand_offset, int eval_option)
 {
+    // TEST
+    // log(*options->log_stream, "////////////////////////////////////////////////////////////////////");
+    // log(*options->log_stream, "GENITOR ITERATION: ", srand_offset);
+    // log(*options->log_stream, "////////////////////////////////////////////////////////////////////");
+    // log_endl(*options->log_stream);
+
     int parent_index_1 = 0;
     int parent_index_2 = 0;
 
     Individual *parent_1, *parent_2;
     Individual child(options->chromosome_length);
 
+    // TEST
+    // print("POP:GENITOR: Parent 1 rank selection");
+
     rank_selection_prep(srand_offset);
     parent_index_1 = rank_selection(srand_offset + m_srand_offset_count++);
+
+    // TEST
+    // print("POP:GENITOR: Parent 2 rank selection");
 
     // THE FOLLOWING LOOP STOPS ASEXUAL SELECTION
     // ADDED THE m_srand_offset_count OFFSET FOR SRAND() BECAUSE OCCASIONALLY GETTING HELD UP IN THIS LOOP, PROBABLY DUE TO TIME(NULL) SEED
@@ -591,13 +558,35 @@ void Population::genitor(long srand_offset, int eval_option)
     while(parent_index_2 == parent_index_1) // COULD ALLOW SAME PARENT MATING WHEN USING TSP-ER XOVER - SOMETHING TO CONSIDER... (112823)
         parent_index_2 = rank_selection(srand_offset + (parent_index_1 + 1) + m_srand_offset_count++); // ADDING (parent_index_1 + 1) TO SRAND_OFFSET INTRODUCES ADDITIONAL RANDOMNESS
 
+    // TEST
+    // print("POP:GENITOR: AFTER RANK SELECTION");
+
     // COLLECT SELECTION COUNTS FOR SELECTION STATS
     rank_selection_stats(parent_index_1, parent_index_2, 2);
 
+    // TEST
+    // print("POP:GENITOR: AFTER SELECTION STATS");
+
     parent_1 = &members[parent_index_1];
     parent_2 = &members[parent_index_2];
+
+    // TEST
+    // log(*options->log_stream, "\nPOP::GENITOR: Parent 1:");
+    // parent_1->print_ind();
+    // log_endl(*options->log_stream);
+    // log(*options->log_stream, "\nPOP::GENITOR: Parent 2:");
+    // parent_2->print_ind();
+    // endl();
+    // log(*options->log_stream, "\nPOP::GENITOR: Before ER xover:");
+    // log_endl(*options->log_stream);
     
     edge_recombination(parent_1, parent_2, child, srand_offset + (parent_index_2 + 1) + m_srand_offset_count++);
+
+    // TEST
+    // log(*options->log_stream, "\nPOP::GENITOR: After ER xover:");
+    // print("\nPOP::GENITOR: Child after ER xover:");
+    // child.print_ind();
+    // endl();
 
     // MAY WANT TO CHANGE THIS SO THAT ENTIRE POPULATION IS GIVEN CHANCE TO MUTATE, NOT JUST CHILD
     // ^ FOLLOWING UP (112823) WILL TRY FULL POPULATION MUTATION
@@ -617,19 +606,75 @@ void Population::genitor(long srand_offset, int eval_option)
     TSP(child, options->tsp_data, options->tsp_edge_weight_format, m_results, eval_option);
     child.set_fitness(m_results.fitness);
     child.set_objective_value(m_results.objective);
+
+    // TEST
+    // if(flip_check)
+    //     print("POP::GENITOR: Child after scramble:");
+    // else
+    //     print("POP::GENITOR: Child wasn't scrambled:");
+    // child.print_ind();
+    // print("fitness = ", child.get_fitness());
+    // print("objective = ", child.get_objective_value());
+    // endl();
     
     int index_min_fit_member = find_min_fitness_member();
+
+    // TEST
+    // print("Index of min fit member = ", index_min_fit_member);
+    // print("min fit member fitness = ", members[index_min_fit_member].get_fitness());
+    // print("min fit member objective = ", members[index_min_fit_member].get_objective_value());
+    // endl();
 
     bool check =  child.get_fitness() > members[index_min_fit_member].get_fitness();
     if(check)
     {
+        // TEST
+        // print("\nPOP::GENITOR: Replace min fit member with child occurs");
+        // print("POP::GENITOR: Min index member before replacement:");
+        // members[index_min_fit_member].print_ind();
+        // endl();
+
         members[index_min_fit_member].set_chromosome(options->chromosome_length, child.get_chromosome());
         members[index_min_fit_member].set_fitness(child.get_fitness());
         members[index_min_fit_member].set_objective_value(child.get_objective_value());
     }
 
+    // TEST
+    // if(check)
+    //     print("\nPOP::GENITOR: Min index member after replacement:");
+    // else
+    //     print("\nPOP::GENITOR: No replacement, parent lives:");
+    // members[index_min_fit_member].print_ind();
+    // print("fitness = ", members[index_min_fit_member].get_fitness());
+    // print("objective = ", members[index_min_fit_member].get_objective_value());
+    // endl();
+
+    // MUTATES WHOLE POPULATION, AS OPPOSED TO JUST THE CHILD
+    // MAY NOT BE THE CORRECT METHOD
+    // for(int i = 0; i < options->population_size; i++)
+    // {
+    //     mutation_total_possible++;
+    //     bool flip_check = flip(options->mutation_rate, options->random_seed, srand_offset + m_srand_offset_count++);
+    //     if(flip_check)
+    //     {
+    //         scramble_mutation(members[i], srand_offset + m_srand_offset_count++);
+            
+    //         // COLLLECT MUTATION COUNT FOR MUTATION STATS
+    //         mutation_count++;
+    //     }
+        
+    //     // UNIT TEST
+    //     // if(duplicate_values_in_string(child, options->chromosome_length))
+    //     //     throw(std::string("POPULATION::GENITOR: Duplicates in child string"));
+ 
+    // }
+
     parent_1 = nullptr;
     parent_2 = nullptr;
+
+    // TEST
+    // print("POP::GENITOR: End");
+    // cin();
 }
 
 int Population::proportional_selection(long srand_offset)
@@ -1674,10 +1719,11 @@ void Population::write_population_to_file()
     {
         for(int j = 0; j < options->chromosome_length; j++)
         {
-            out << members[i].get_chromosome()[j] << " ";
+            if(j != options->chromosome_length - 1)
+                out << members[i].get_chromosome()[j] << " ";
+            else
+                out << members[i].get_chromosome()[j] << "\n";
         }
-        out << std::fixed << std::setprecision(15) << members[i].get_fitness() << " ";
-        out << std::setprecision(0) << members[i].get_objective_value() << std::endl;
     }
     out.close();
 }

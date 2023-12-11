@@ -1,6 +1,6 @@
 #include "ga.h"
 
-GA::GA(int argc, char *argv[], int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream, std::string tsp_filename)
+GA::GA(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream, std::string tsp_filename)
 {
     options.tsp_data = new int*[chromosome_length];
     for(int i = 0; i < chromosome_length; i++)
@@ -10,34 +10,58 @@ GA::GA(int argc, char *argv[], int iterator, std::string problem_type, int ga_va
             options.tsp_data[i][j] = -1;
     }
 
-    // TEST
-    // print("GA::GA: tsp_data init:");
-    // for(int i = 0; i < chromosome_length; i++)
-    // {
-    //     std::cout << i+1 << ": ";
-    //     for(int j = 0; j < chromosome_length; j++)
-    //     {
-    //         std::cout << options.tsp_data[2][2] << " ";
-    //     }
-    //     endl();
-    // }
-    // endl();
-
-    setup_options(argc, argv, iterator, problem_type, ga_variant_option, ga_variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream);
+    setup_options(iterator, problem_type, ga_variant_option, ga_variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream);
 }
+
+GA::GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename)
+{
+    options.tsp_data = new int*[chromosome_length];
+    for(int i = 0; i < chromosome_length; i++)
+    {
+        options.tsp_data[i] = new int[chromosome_length];
+        for(int j = 0; j < chromosome_length; j++)
+            options.tsp_data[i][j] = -1;
+    }
+
+    setup_options(population_size, mutation_rate, xover_rate, chromosome_length, iteration);
+
+    // TEST
+    // print("GA::GA: After setup options");
+
+    set_tsp_tour_name(tsp_filename);
+
+    // TEST
+    // print("GA::GA: After set_tsp_tour_name");
+
+    set_tsp_data_option(tsp_filename);
+
+    // TEST
+    // print("GA::GA: After set_tsp_data_option");
+    
+    if(get_eval_option() == 2 || get_eval_option() == 3)
+    {
+        write_EUC2Dcoords_to_file(m_tsp_tour_name);
+        
+        // TEST
+        // print("GA::GA: After write_EUC2Dcoords_to_file");
+    }
+
+    // TEST
+    // print("GA::GA: END");
+}
+
 
 GA::~GA()
 {
     delete parent;
     delete child;
     delete m_temp;
-    delete[] m_stats;
     for(int i = 0; i < options.chromosome_length; i++)
         delete[] options.tsp_data[i];
     delete[] options.tsp_data;
 }
 
-void GA::setup_options(int argc, char *argv[], int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream)
+void GA::setup_options(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream)
 {
     options.log_stream = &log_stream;
 
@@ -72,6 +96,25 @@ void GA::setup_options(int argc, char *argv[], int iterator, std::string problem
     
 }
 
+void GA::setup_options(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration)
+{
+    options.random_seed = time(NULL) + iteration;
+    options.mutation_rate = mutation_rate;
+    options.xover_rate = xover_rate;
+    options.chromosome_length = chromosome_length;
+    options.extinction_delay = 1;
+    options.convergence_resolution_threshold = 0.00001;
+    options.super_individual_threshold = 2;
+    options.semi_super_individual_threshold = 1.2;
+    options.selection_pressure = 1.9;
+    options.ga_variant_name_abbreviation = "G";
+    
+    options.population_size = population_size; //POPULATION SIZE CANNOT EQUAL ODD NUMBER OR SEGMENT FAULT!!! - This may not be true for genitor (its an old note...) but I havent verified.(CB.231210) 
+    options.max_generations = 30000;
+
+    options.GA_iteration = iteration;
+}
+
 void GA::set_option_output_files(std::string run_number)
 {
     options.output_file = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_" + run_number  + ".txt";
@@ -86,6 +129,27 @@ void GA::set_eval_option(int option)
 void GA::set_reporting_option(int option)
 {
     options.reporting_option = option;
+}
+
+void GA::set_tsp_tour_name(std::string tsp_filename)
+{
+    int j = 0;
+    bool verify_dir = false;
+    while(!verify_dir)
+    {
+        if(tsp_filename[j++] == '/')
+            verify_dir = true;
+    }
+    if(!verify_dir)
+        j = 0;
+    for(int i = j; i < tsp_filename.length(); i++)
+    {
+        if(tsp_filename[i] == '.')
+            break;
+
+        if(!(tsp_filename[i] == '_' || tsp_filename[i] == '/'))
+            m_tsp_tour_name += tsp_filename[i];
+    }
 }
 
 void GA::init(int eval_option, int report_option)
@@ -126,7 +190,6 @@ void GA::init(int eval_option, int report_option)
 
     if(report_option == 1)
         parent->report(0, 1, total_super_individuals, total_semi_super_individuals, false);
-
 }
 
 void GA::run(int eval_option, int report_option)
@@ -135,7 +198,7 @@ void GA::run(int eval_option, int report_option)
 
     for(int i = 1; i < options.max_generations; i++)
     {
-        int srand_offset = i*options.population_size;
+        long srand_offset = i*options.population_size;
         
         parent->generation(child, i);
         try
@@ -170,7 +233,7 @@ void GA::run(int eval_option, int report_option)
     }
 }
 
-void GA::run_genitor(int srand_offset)
+void GA::run_genitor(long srand_offset)
 {
     for(int i = 1; i < options.max_generations; i++)
     {
@@ -181,7 +244,53 @@ void GA::run_genitor(int srand_offset)
     }
 }
 
-bool GA::extinction_check(int eval_option, int random_seed, int srand_offset)
+void GA::run_genitor_on_imGui(long srand_offset)
+{
+    // TEST
+    // print("GA::run_genitor_on_imGui");
+
+    if(srand_offset == 0)
+    {
+        // TEST
+        // print("IN IF: iteration = ", srand_offset);
+
+        parent = new Population(options);
+        try
+        {
+            parent->evaluate(options.tsp_edge_weight_format, options.tsp_data, options.random_seed, 0, m_eval_option);
+            parent->stats(total_super_individuals, total_semi_super_individuals);
+            parent->report_single();
+            parent->write_population_to_file();
+        }
+        catch(std::string error_message)
+        {
+            throw(error_message);
+        }
+    }
+    else
+    {
+        // TEST
+        // print("IN ELSE: iteration = ", srand_offset);
+
+        std::ifstream in("population.txt");
+        parent = new Population(options, in);
+        in.close();
+
+        try
+        {
+            parent->genitor(srand_offset, m_eval_option);
+            parent->stats(total_super_individuals, total_semi_super_individuals);
+            parent->report_single();
+            parent->write_population_to_file();
+        }
+        catch(std::string error_message)
+        {
+            throw(error_message);
+        }
+    }
+}
+
+bool GA::extinction_check(int eval_option, int random_seed, long srand_offset)
 {
     double convergence = parent->get_convergence();
     double convergence_check = convergence - 1;
@@ -191,7 +300,7 @@ bool GA::extinction_check(int eval_option, int random_seed, int srand_offset)
     return extinction_counter == options.extinction_delay ? extinction_event(eval_option, options.random_seed, srand_offset) : false;
 }
 
-bool GA::extinction_event(int eval_option, int random_seed, int srand_offset)
+bool GA::extinction_event(int eval_option, int random_seed, long srand_offset)
 {
     extinction_counter = 0;
     if(options.ga_variant_name == "S-E")
@@ -307,8 +416,14 @@ Options GA::get_options() const
     return options;
 }
 
-int GA::get_eval_option() const{
+int GA::get_eval_option() const
+{
     return m_eval_option;
+}
+
+Population*& GA::get_parent()
+{
+    return parent;
 }
 
 // TSP
@@ -346,13 +461,13 @@ void GA::set_tsp_data_option(std::string filename)
         int choice = get_tsp_specs(in);
         switch(choice) // Valid choices based on return equation given in GA::get_tsp_specs()
         {
-            case 30: // EDGE_WEIGHT_TYPE: EXPLICIT; EDGE_WEIGHT_FORMAT: LOWER_DIAG_ROW
+            case 11: // EDGE_WEIGHT_TYPE: EXPLICIT; EDGE_WEIGHT_FORMAT: LOWER_DIAG_ROW
                 in.clear();
                 in.seekg(0);
                 set_tsp_LTM_data_option(in);
                 m_eval_option = 1;
                 break;
-            case 2:
+            case 2: // 
                 in.clear();
                 in.seekg(0);
                 set_tsp_EUC2D_data_option(in);
@@ -375,8 +490,8 @@ int GA::get_tsp_specs(std::ifstream& in)
 {
     if(in.good())
     {
-        int a = -1;
-        int b = -1;
+        int a = 0;
+        int b = 0;
         std::string temp_1;
         while(!(temp_1 == "EDGE_WEIGHT_TYPE:" || temp_1 == "EDGE_WEIGHT_TYPE") && in.good())
             in >> temp_1;
@@ -402,6 +517,7 @@ int GA::get_tsp_specs(std::ifstream& in)
         }
         // EXPAND IF-STATEMENTS HERE FOR MORE SPECS IF NEEDED
 
+        in.clear();
         in.seekg(0);
 
         while(temp_1 != "EDGE_WEIGHT_FORMAT:" && in.good())
@@ -409,13 +525,10 @@ int GA::get_tsp_specs(std::ifstream& in)
         in >> temp_1;
 
         if(temp_1 == "LOWER_DIAG_ROW")
-            b = 30;
+            b = 10;
         // EXPAND IF-STATEMENTS HERE FOR MORE SPECS IF NEEDED
 
-        if(a > 0 && b > 0)
-            return (a+b)*a*b;
-        else
-            return a;
+        return a+b;
     }
     else
         throw(std::string("GA::set_tsp_specs: TSP file doesn't exist. Program aborted."));
@@ -527,4 +640,14 @@ void GA::set_tsp_xml_data_option(std::ifstream& in)
     }
     else
         throw(std::string("GA::set_tsp_xml_data: TSP file doesn't exist. Program aborted."));
+}
+
+void GA::write_EUC2Dcoords_to_file(std::string tsp_tour_name)
+{
+    std::ofstream out(tsp_tour_name + "_coords.txt");
+
+    for(int i = 0; i < options.chromosome_length; i++)
+        out << options.tsp_data[i][0] << " " << options.tsp_data[i][1] << " " << options.tsp_data[i][2] << std::endl;
+
+    out.close();
 }

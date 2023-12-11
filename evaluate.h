@@ -4,7 +4,7 @@
 #include "individual.h"
 #include "eval_results.h"
 
-void eval(Individual&, Eval_results& results, int** tour_data, int choice, int random_seed, int srand_offset, int eval_option);
+void eval(Individual&, Eval_results& results, int** tour_data, int choice, int random_seed, long srand_offset, int eval_option);
 
 double* decode(Individual&, int bit_length, double scaler);
 double* decode_withVarsOfDiffBitLength_onlyPositive(Individual&, int variable_count, int bit_length[], double scaler[]);
