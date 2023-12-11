@@ -18,8 +18,13 @@ int main(int argc, char* argv[])
     int population_size = 200;
     double m_rate = 0.01;
     double x_rate = 1;
-    int chrom_len = 48;
-    std::string filename = "raw_data/gr48.tsp";
+    int chrom_len = std::stoi(argv[2]);
+    std::string filename = argv[1];
+    // int chrom_len = 76;
+    // std::string filename = "raw_data/eil76.tsp";
+    // int chrom_len = 24;
+    // std::string filename = "raw_data/gr24.tsp";
+    std::ofstream log("log.txt");
     for(int i = 0; i < 30000; i ++)
     {
         try
@@ -27,7 +32,7 @@ int main(int argc, char* argv[])
             // TEST
             // print("MAIN:: BEFORE GA INIT");
 
-            GA ga(population_size, m_rate, x_rate, chrom_len, i, filename);
+            GA ga(population_size, m_rate, x_rate, chrom_len, i, filename, log);
 
             // TEST
             // print("MAIN:: AFTER GA INIT");
@@ -56,7 +61,7 @@ int main(int argc, char* argv[])
             return 0;
         }
     }
-
+    log.close();
     return 0;
     // END TEST
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

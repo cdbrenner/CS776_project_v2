@@ -537,13 +537,13 @@ void Population::generation(Population*& child, long srand_offset)
         // parent_index_1 = proportional_selection(srand_offset*options->population_size + i);
  
         // RANK SELECTION
-        parent_index_1 = rank_selection(srand_offset*options->population_size + i);
+        rank_selection(srand_offset*options->population_size + i, parent_index_1);
  
         // THE FOLLOWING LOOP STOPS ASEXUAL SELECTION
         // ADDED THE k OFFSET FOR SRAND() BECAUSE OCCASIONALLY GETTING HELD UP IN THIS LOOP, PROBABLY DUE TO TIME(NULL) SEED
         int k = 0;
 
-        parent_index_2 = rank_selection(srand_offset*options->population_size + i + 1 + k);
+        rank_selection(srand_offset*options->population_size + i + 1 + k, parent_index_2);
         
         while(parent_index_2 == parent_index_1)
         {
@@ -553,7 +553,7 @@ void Population::generation(Population*& child, long srand_offset)
             // parent_index_2 = proportional_selection(srand_offset*options->population_size + i + 1 + k);
         
             // RANK SELECTION
-            parent_index_2 = rank_selection(srand_offset*options->population_size + i + 1 + k);
+            rank_selection(srand_offset*options->population_size + i + 1 + k, parent_index_2);
         }
 
         child_index_1 = i;
@@ -583,19 +583,25 @@ void Population::genitor(long srand_offset, int eval_option)
     Individual child(options->chromosome_length);
 
     rank_selection_prep(srand_offset);
-    parent_index_1 = rank_selection(srand_offset + m_srand_offset_count++);
+    rank_selection(srand_offset + m_srand_offset_count++, parent_index_1);
 
     // THE FOLLOWING LOOP STOPS ASEXUAL SELECTION
     // ADDED THE m_srand_offset_count OFFSET FOR SRAND() BECAUSE OCCASIONALLY GETTING HELD UP IN THIS LOOP, PROBABLY DUE TO TIME(NULL) SEED
     parent_index_2 = parent_index_1;
     while(parent_index_2 == parent_index_1) // COULD ALLOW SAME PARENT MATING WHEN USING TSP-ER XOVER - SOMETHING TO CONSIDER... (112823)
-        parent_index_2 = rank_selection(srand_offset + (parent_index_1 + 1) + m_srand_offset_count++); // ADDING (parent_index_1 + 1) TO SRAND_OFFSET INTRODUCES ADDITIONAL RANDOMNESS
+        rank_selection(srand_offset + (parent_index_1 + 1) + m_srand_offset_count++, parent_index_2); // ADDING (parent_index_1 + 1) TO SRAND_OFFSET INTRODUCES ADDITIONAL RANDOMNESS
 
     // COLLECT SELECTION COUNTS FOR SELECTION STATS
     rank_selection_stats(parent_index_1, parent_index_2, 2);
 
     parent_1 = &members[parent_index_1];
     parent_2 = &members[parent_index_2];
+
+    // // TEST
+    // print("POP::GENITOR: Above edge_recombination; child:");
+    // for(int i = 0; i < options->chromosome_length; i++)
+    //     std::cout << child.get_chromosome()[i] << " ";
+    // endl();
     
     edge_recombination(parent_1, parent_2, child, srand_offset + (parent_index_2 + 1) + m_srand_offset_count++);
 
@@ -636,7 +642,7 @@ int Population::proportional_selection(long srand_offset)
 {
     srand(options->random_seed + srand_offset);
     double random_fraction = (double)rand()/RAND_MAX;
-    double limits[options->population_size];
+    double* limits = new double[options->population_size];
     limits[0] = members[0].get_fitness()/sum_fitness;
 
     for(int i = 1; i < options->population_size; i++)
@@ -645,9 +651,13 @@ int Population::proportional_selection(long srand_offset)
     for(int i = 0; i < options->population_size; i++)
     {
         if(random_fraction <= limits[i])
+        {
+            delete[] limits;
             return i;
+        }
     }
 
+    delete[] limits;
     return -1;
 }
 
@@ -714,7 +724,7 @@ void Population::rank_selection_prep(long srand_offset)
         selection_pressure_scaling();
 }
 
-int Population::rank_selection(long srand_offset)
+int Population::rank_selection(long srand_offset, int& member_id)
 {
     sum_rank = 0;
     for(int i = 0; i < options->population_size; i++)
@@ -729,7 +739,10 @@ int Population::rank_selection(long srand_offset)
     // UNIT TEST: RANDOM STATS
     // rand_stats(random_fraction, 2);
 
-    double limits[options->population_size][options->population_size];
+    double** limits = new double*[options->population_size];
+    
+    for(int i = 0; i < options->population_size; i++)
+        limits[i] = new double[options->population_size];
 
     limits[0][0] = member_ids[0][0]/sum_rank;
     limits[0][1] = member_ids[0][1];
@@ -756,11 +769,19 @@ int Population::rank_selection(long srand_offset)
         if(random_fraction <= limits[i][0])
         {
             // print("\nreturn index = ", i);
-            return limits[i][1];
+            member_id = limits[i][1];
+            for(int i = 0; i < options->population_size; i++)
+                delete[] limits[i];
+            delete[] limits;
+            return 1;
         }
     }
 
-    return -INT32_MAX;
+    for(int i = 0; i < options->population_size; i++)
+        delete[] limits[i];
+    delete[] limits;
+    member_id = -INT32_MAX;
+    return 0;
 }
 
 void Population::convert_member_ids_fitness_to_rank()
@@ -827,8 +848,19 @@ int Population::average_rank()
 
 void Population::edge_recombination(Individual* parent_1, Individual* parent_2, Individual& child, long srand_offset)
 {
-    int edge_map[options->chromosome_length][5];
+    // TEST
+    // log(*options->log_stream, "POP::EDGE_RECOBINATION: Top");
+    // print("POP::EDGE_RECOBINATION: Top");
+
+    int** edge_map = new int*[options->chromosome_length];
+    for(int i = 0; i < options->chromosome_length; i++)
+        edge_map[i] = new int[5];
+    
     build_edge_map(parent_1, parent_2, edge_map);
+    
+    // TEST
+    // print("POP::EDGE_RECOBINATION: Below build_edge_map");
+    
     int cities_appended_to_child = 0;
     int current_city = -1;
     int previous_city = -1;
@@ -871,7 +903,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         // log_endl(*options->log_stream);
         // log_endl(*options->log_stream);
 
-        if(edge_map[current_city - 1][0] == 1)
+        if(current_city != -1 && edge_map[current_city - 1][0] == 1)
         {
             current_city = edge_map[current_city - 1][1];
             previous_city = child.get_chromosome()[cities_appended_to_child - 1];
@@ -1102,10 +1134,14 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
     // TEST
     // log(*options->log_stream, "POP::ER_XOVER: End");
     // log_endl(*options->log_stream);
+
+    for(int i = 0; i < options->chromosome_length; i++)
+        delete[] edge_map[i];
+    delete[] edge_map;
     
 }
 
-void Population::build_edge_map(Individual* parent_1, Individual* parent_2, int edge_map[][5])
+void Population::build_edge_map(Individual* parent_1, Individual* parent_2, int** edge_map)
 {
     for(int i = 0; i < options->chromosome_length; i++)
     {
@@ -1217,7 +1253,7 @@ void Population::build_edge_map(Individual* parent_1, Individual* parent_2, int 
     }
 }
 
-void Population::rebuild_edge_map(int edge_map[][5], int city_to_remove, int previous_city)
+void Population::rebuild_edge_map(int** edge_map, int city_to_remove, int previous_city)
 {
     for(int i = 0; i < options->chromosome_length; i++)
     {
@@ -1248,7 +1284,7 @@ void Population::rebuild_edge_map(int edge_map[][5], int city_to_remove, int pre
     }
 }
 
-bool Population::edge_check(int edge_map[][5], int city, int edge)
+bool Population::edge_check(int** edge_map, int city, int edge)
 {
     for(int i = 1; i < (edge_map[city - 1][0] + 1); i++)
         if(edge_map[city - 1][i] == edge)

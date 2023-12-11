@@ -19,11 +19,11 @@ class GA
 
     public:
         GA(int iterator, std::string problem_type, int ga_variant, std::string ga_variant_name_abbreviation, double mutation_probability, double xover_probability, int chromosome_length, std::ofstream& log_file_stream, std::string tsp_filename);
-        GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename);
+        GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename, std::ofstream& log);
         ~GA();
 
         void setup_options(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_file_stream);
-        void setup_options(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration);
+        void setup_options(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::ofstream& log);
         void set_option_output_files(std::string iteration);
         void set_eval_option(int);
         void set_reporting_option(int);

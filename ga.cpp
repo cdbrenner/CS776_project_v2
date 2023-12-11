@@ -13,7 +13,7 @@ GA::GA(int iterator, std::string problem_type, int ga_variant_option, std::strin
     setup_options(iterator, problem_type, ga_variant_option, ga_variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream);
 }
 
-GA::GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename)
+GA::GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename, std::ofstream& log)
 {
     options.tsp_data = new int*[chromosome_length];
     for(int i = 0; i < chromosome_length; i++)
@@ -23,7 +23,7 @@ GA::GA(int population_size, double mutation_rate, double xover_rate, int chromos
             options.tsp_data[i][j] = -1;
     }
 
-    setup_options(population_size, mutation_rate, xover_rate, chromosome_length, iteration);
+    setup_options(population_size, mutation_rate, xover_rate, chromosome_length, iteration, log);
 
     // TEST
     // print("GA::GA: After setup options");
@@ -37,6 +37,23 @@ GA::GA(int population_size, double mutation_rate, double xover_rate, int chromos
 
     // TEST
     // print("GA::GA: After set_tsp_data_option");
+    // for(int i = 0; i < options.chromosome_length; i++)
+    // {
+    //     if(m_eval_option == 1)
+    //     {
+    //         for(int j =0 ; j < options.chromosome_length; j++)
+    //             print(options.tsp_data[i][j], " ");
+    //         endl();
+    //     }
+    //     if(m_eval_option == 2)
+    //     {
+    //         for(int j =0 ; j < 4; j++)
+    //             print(options.tsp_data[i][j], " ");
+    //         endl();
+    //     }
+    // }
+    // endl();
+    // cin();
     
     if(get_eval_option() == 2 || get_eval_option() == 3)
     {
@@ -96,8 +113,10 @@ void GA::setup_options(int iterator, std::string problem_type, int ga_variant_op
     
 }
 
-void GA::setup_options(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration)
+void GA::setup_options(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::ofstream& log)
 {
+    options.log_stream = &log;
+
     options.random_seed = time(NULL) + iteration;
     options.mutation_rate = mutation_rate;
     options.xover_rate = xover_rate;
@@ -330,10 +349,13 @@ bool GA::extinction_event(int eval_option, int random_seed, long srand_offset)
 
 void GA::report_averager(int total_run_count)
 {
-    double temp_fitness_data[options.max_generations][4];
-    double temp_objective_data[options.max_generations][4];
+    double** temp_fitness_data = new double*[options.max_generations];
+    double** temp_objective_data = new double*[options.max_generations];
     for(int i = 0; i < options.max_generations; i++)
     {
+        temp_fitness_data[i] = new double[4];
+        temp_objective_data[i] = new double[4];
+        
         for(int j = 1; j < 4; j++)
         {
             temp_fitness_data[i][0] = i;
@@ -409,6 +431,14 @@ void GA::report_averager(int total_run_count)
     }
     out.close();
     out_o.close();
+
+    for(int i = 0; i < options.max_generations; i++)
+    {
+        delete[] temp_fitness_data[i];
+        delete[] temp_objective_data[i];
+    }
+    delete[] temp_fitness_data;
+    delete[] temp_objective_data;
 }
 
 Options GA::get_options() const

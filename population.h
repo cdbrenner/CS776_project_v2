@@ -106,11 +106,11 @@ class Population
         void selection_pressure_scaling();
         int average_rank();
         void rank_selection_prep(long srand_offset);
-        int rank_selection(long srand_offset); // IMPLEMENTED SO THAT EQUAL FITNESS MEMBERS HAVE THE SAME RANK. THEREFORE, EXPECT SLOW CONVERGENCE.
+        int rank_selection(long srand_offset, int& member_id); // IMPLEMENTED SO THAT EQUAL FITNESS MEMBERS HAVE THE SAME RANK. THEREFORE, EXPECT SLOW CONVERGENCE.
         void edge_recombination(Individual*, Individual*, Individual&, long srand_offset);
-        void build_edge_map(Individual* parent_1, Individual* parent_2, int edge_map[][5]);
-        void rebuild_edge_map(int edge_map[][5], int city_to_remove, int previous_city);
-        bool edge_check(int edge_map[][5], int city, int edge);
+        void build_edge_map(Individual* parent_1, Individual* parent_2, int** edge_map);
+        void rebuild_edge_map(int** edge_map, int city_to_remove, int previous_city);
+        bool edge_check(int** edge_map, int city, int edge);
         
         
         int one_point_xover(Individual*&,Individual*&,Individual*&,Individual*&, long srand_offset);
