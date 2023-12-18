@@ -15,54 +15,62 @@
 int main(int argc, char* argv[])
 {
 
-    int population_size = 200;
-    double m_rate = 0.01;
-    double x_rate = 1;
-    int chrom_len = std::stoi(argv[2]);
-    std::string filename = argv[1];
-    // int chrom_len = 76;
-    // std::string filename = "raw_data/eil76.tsp";
-    // int chrom_len = 24;
-    // std::string filename = "raw_data/gr24.tsp";
-    std::ofstream log("log.txt");
-    for(int i = 0; i < 30000; i ++)
-    {
-        try
-        {
-            // TEST
-            // print("MAIN:: BEFORE GA INIT");
+    // TESTING EVALUATION IMPLEMENTATION
+    // int population_size = 200;
+    // double m_rate = 0.5;
+    // double x_rate = 1;
+    // std::ofstream log("log.txt");
+    // int chrom_len = 52;
+    // std::string filename = "raw_data/berlin52.tsp";
+    // GA ga(population_size, m_rate, x_rate, chrom_len, 0, filename, log);
+    // int berlin[52]{1, 49, 32, 45, 19, 41, 8, 9, 10, 43, 33, 51, 11, 52, 14, 13, 47, 26, 27, 28, 12, 25, 4, 6, 15, 5, 24, 48, 38, 37, 40, 39, 36, 35, 34, 44, 46, 16, 29, 50, 20, 23, 30, 2, 7, 42, 21, 17, 3, 18, 31, 22};
+    // // int berlin[14]{1,13,2,3,4,5,11,6,12,7,10,8,9,14};
+    // Individual ind(chrom_len, berlin);
+    // Eval_results er;
+    // TSP(ind, ga.get_options().tsp_data, ga.get_options().tsp_edge_weight_format, er, ga.get_eval_option());
+    // print("berlin ind:");
+    // ind.print_ind();
+    // std::cout << "berlin Result:\n";
+    // print("ga.get_options().tsp_edge_weight_format = ", ga.get_options().tsp_edge_weight_format);
+    // print("ga.get_eval_option() = ", ga.get_eval_option());
+    // std::cout << er.objective << std::endl;
+    // return 0;
 
-            GA ga(population_size, m_rate, x_rate, chrom_len, i, filename, log);
+    // TEST FOR IM_GUI USAGE
+    // int population_size = 200;
+    // double m_rate = 0.01;
+    // double x_rate = 1;
+    // int chrom_len = std::stoi(argv[2]);
+    // std::string filename = argv[1];
+    // // int chrom_len = 76;
+    // // std::string filename = "raw_data/eil76.tsp";
+    // // int chrom_len = 24;
+    // // std::string filename = "raw_data/gr24.tsp";
+    // std::ofstream log("log.txt");
+    // GA ga(population_size, m_rate, x_rate, chrom_len, 0, filename, log);
+    // for(int i = 0; i < 30000; i ++)
+    // {
+    //     try
+    //     {
 
-            // TEST
-            // print("MAIN:: AFTER GA INIT");
-
-            // TEST
-            // long a = digit_count(ga.get_options().random_seed);
-            // long b = pow(10,a);
-            // print("random_seed = ", (long)ga.get_options().random_seed);
-            // print("srand_offset = ", b);
-            // print("sum = ", ga.get_options().random_seed+b);
-            // cin();
-
-            ga.run_genitor_on_imGui(i*pow(10,digit_count(ga.get_options().random_seed)));
+    //         ga.run_genitor_on_imGui(i*pow(10,digit_count(ga.get_options().random_seed)), i);
             
-            // TEST
-            if(!population_copy_achieved(*ga.get_parent()))
-            {
-                print("iteration = ", i);
-                return EXIT_FAILURE;
-            }
-            // cin();
-        }
-        catch(std::string error_message)
-        {
-            print(error_message);
-            return 0;
-        }
-    }
-    log.close();
-    return 0;
+    //         // TEST
+    //         // if(!population_copy_achieved(*ga.get_parent()))
+    //         // {
+    //         //     print("iteration = ", i);
+    //         //     return EXIT_FAILURE;
+    //         // }
+    //         // cin();
+    //     }
+    //     catch(std::string error_message)
+    //     {
+    //         print(error_message);
+    //         return 0;
+    //     }
+    // }
+    // log.close();
+    // return 0;
     // END TEST
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,6 +91,8 @@ int main(int argc, char* argv[])
         std::cout << "argv[6] = GA variant " << std::endl;
         std::cout << "argv[7] = mutation rate " << std::endl;
         std::cout << "argv[8] = crossover rate " << std::endl;
+        std::cout << "argv[9] = population size " << std::endl;
+        std::cout << "argv[10] = max generations " << std::endl;
         std::cout << "\nCommand line requirements not given. Aborting." << std::endl;
         return EXIT_FAILURE;
     }
@@ -170,6 +180,20 @@ int main(int argc, char* argv[])
     double xover_rate_first = 0;
     double xover_rate_last = 1;
     bool xover_rate_preset = false;
+    
+    // Crossover rate variables
+    double pop_size = -1;
+    double pop_size_default = 200;
+    double pop_size_first = 2;
+    double pop_size_last = 2000;
+    bool pop_size_preset = false;
+    
+    // Crossover rate variables
+    double max_generations = -1;
+    double max_generations_default = 50000;
+    double max_generations_first = 2;
+    double max_generations_last = 1000000;
+    bool max_generations_preset = false;
 
     bool all_preset = false;
 
@@ -237,16 +261,39 @@ int main(int argc, char* argv[])
         }
         xover_rate_preset = true;
     }
+    if(argc >= guaranteed_args + 6)
+    {
+        try
+        {
+            try_args_to_double_in_range(argv[guaranteed_args + 5], pop_size, pop_size_first, pop_size_last, pop_size_default, "argv[" + std::to_string(guaranteed_args + 5) + "]");
+        }
+        catch(std::string error_message)
+        {
+            std::cout << "\nInvalid value given for " << error_message << "; population size defaulting to " << pop_size << std::endl;
+        }
+        pop_size_preset = true;
+    }
+    if(argc >= guaranteed_args + 7)
+    {
+        try
+        {
+            try_args_to_double_in_range(argv[guaranteed_args + 6], max_generations, max_generations_first, max_generations_last, max_generations_default, "argv[" + std::to_string(guaranteed_args + 6) + "]");
+        }
+        catch(std::string error_message)
+        {
+            std::cout << "\nInvalid value given for " << error_message << "; max generations defaulting to " << max_generations << std::endl;
+        }
+        max_generations_preset = true;
+    }
 
-    if(reporting_preset && runs_preset && ga_variant_preset && mutation_rate_preset && xover_rate_preset)
+    if(reporting_preset && runs_preset && ga_variant_preset && mutation_rate_preset && max_generations_preset && pop_size_preset && max_generations_preset)
         all_preset = true;
         
 
     if(argc >= guaranteed_args && argv_3 == 1)
     {
         int choice = -1;
-        int run_program_choice = 7;
-        int count_of_first_argv_variable = 5;
+        int run_program_choice = 9;
         while(choice != run_program_choice)
         {
             switch(choice)
@@ -259,7 +306,6 @@ int main(int argc, char* argv[])
                     if(report_option < report_option_first || report_option > report_option_last)
                     {
                         std::cout << "\nInvalid option. Returning to main menu." << std::endl;
-                        report_option = 2;
                     }
                     choice = -1;
                     break;
@@ -269,7 +315,6 @@ int main(int argc, char* argv[])
                     if(runs < runs_first || runs > runs_last)
                     {
                         std::cout << "\nInvalid option. Returning to main menu." << std::endl;
-                        runs = 1;
                     }
                     choice = -1;
                     break;
@@ -284,7 +329,6 @@ int main(int argc, char* argv[])
                     if(ga_variant_option < ga_variant_first || ga_variant_option > ga_variant_last)
                     {
                         std::cout << "\nInvalid option. Returning to main menu." << std::endl;
-                        ga_variant_option = 5;
                     }
                     choice = -1;
                     break;
@@ -294,7 +338,6 @@ int main(int argc, char* argv[])
                     if(mutation_rate < mutation_rate_first || mutation_rate > mutation_rate_last)
                     {
                         std::cout << "\nInvalid option. Returning to main menu." << std::endl;
-                        mutation_rate = 0.01;
                     }
                     choice = -1;
                     break;
@@ -304,11 +347,28 @@ int main(int argc, char* argv[])
                     if(xover_rate < xover_rate_first || xover_rate > xover_rate_last)
                     {
                         std::cout << "\nInvalid option. Returning to main menu." << std::endl;
-                        xover_rate = 0.667;
                     }
                     choice = -1;
                     break;
                 case 6:
+                    std::cout << "\nChoose population size in the range [2, 2000]:" << std::endl;
+                    pop_size = int_choice();
+                    if(pop_size < pop_size_first || pop_size > pop_size_last)
+                    {
+                        std::cout << "\nInvalid option. Returning to main menu." << std::endl;
+                    }
+                    choice = -1;
+                    break;
+                case 7:
+                    std::cout << std::fixed << std::setprecision(0) << "\nChoose max generations in the range ["<<max_generations_first<<", "<<max_generations_last<<"]:" << std::endl;
+                    max_generations = int_choice();
+                    if(max_generations < max_generations_first || max_generations > max_generations_last)
+                    {
+                        std::cout << "\nInvalid option. Returning to main menu." << std::endl;
+                    }
+                    choice = -1;
+                    break;
+                case 8:
                     return 0;
                 default:
                     if(!all_preset)
@@ -348,13 +408,25 @@ int main(int argc, char* argv[])
                         std::cout << "5. Crossover rate" << std::endl;
                     else
                     {
+                        std::cout << "5. NOT AN OPTION (CROSSOVER RATE PRESET) - Current setting: " << std::fixed << std::setprecision(3) << xover_rate << std::endl;
+                    }
+                    if(!pop_size_preset)
+                        std::cout << "6. Population size" << std::endl;
+                    else
+                    {
+                        std::cout << "6. NOT AN OPTION (POPULATION SIZE PRESET) - Current setting: " << pop_size << std::endl;
+                    }
+                    if(!max_generations_preset)
+                        std::cout << "7. Max Geneartions" << std::endl;
+                    else
+                    {
                         choice = run_program_choice;
                         break;
                     }
-                    std::cout << "6. Exit program" << std::endl;
-                    std::cout << "7. Run program" << std::endl;
+                    std::cout << "8. Exit program" << std::endl;
+                    std::cout << "9. Run program" << std::endl;
 
-                    menu_choice_with_dynamic_truncation(argc, count_of_first_argv_variable, run_program_choice, choice);
+                    menu_choice_with_dynamic_truncation(argc, guaranteed_args + 1, run_program_choice, choice);
             }
         }
 
@@ -373,6 +445,10 @@ int main(int argc, char* argv[])
             mutation_rate = mutation_rate_default;
         if(equals(xover_rate, -1))
             xover_rate = xover_rate_default;
+        if(equals(pop_size, -1))
+            pop_size = pop_size_default;
+        if(equals(max_generations, -1))
+            max_generations = max_generations_default;
     }
 
     if(argv_3 == 2)
@@ -383,6 +459,8 @@ int main(int argc, char* argv[])
         set_variant_name(variant_name, variant_name_abbreviation, ga_variant_option);
         mutation_rate = mutation_rate_default;
         xover_rate = xover_rate_default;
+        pop_size = pop_size_default;
+        max_generations = max_generations_default;
     }
 
     switch(ga_variant_option)
@@ -404,6 +482,13 @@ int main(int argc, char* argv[])
             break;
     }
 
+    // FOR RUNNING THE AVERAGER POST-TERMINATION /////////////////////////////////////////////
+    // std::ofstream out;
+    // GA ga(runs, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, pop_size, max_generations, chromosome_length, out, tsp_filename);
+    // ga.report_averager(runs);
+    // return 0;
+    //////////////////////////////////////////////////////////////////////////////////////////
+
     for(int j = 0; j < runs; j++)
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -411,8 +496,13 @@ int main(int argc, char* argv[])
 
         try
         {
-            GA ga(j, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream, tsp_filename);
+            GA ga(j, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, pop_size, max_generations, chromosome_length, log_stream, tsp_filename);
             ga.set_reporting_option(report_option);
+
+            // TEST
+            print("RUN: ", j+1);
+            // print("GA population size: ", ga.get_options().population_size);
+            // print("GA max generations: ", ga.get_options().max_generations);
             
             try
             {
@@ -486,7 +576,7 @@ int main(int argc, char* argv[])
     if(report_option == 1)
     {
         std::ofstream out;
-        GA ga(runs, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, out, tsp_filename);
+        GA ga(runs, problem_type, ga_variant_option, variant_name_abbreviation, mutation_rate, xover_rate, pop_size, max_generations, chromosome_length, out, tsp_filename);
         ga.report_averager(runs);
     }
     std::string tsp_coords_filename = TSP_tour_name + "_coords.txt";

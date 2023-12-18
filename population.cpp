@@ -342,7 +342,7 @@ int* Population::get_pmx_indices()
     return pmx_indices;
 }
 
-void Population::evaluate(int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option)
+void Population::evaluate(int choice, double** tsp_data, int random_seed, long srand_offset, int eval_option)
 {
     for(int i = 0; i < options->population_size; i++)
     {
@@ -358,7 +358,7 @@ void Population::evaluate(int choice, int** tsp_data, int random_seed, long sran
     }
 }
 
-void Population::evaluate_single(Individual& member, int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option)
+void Population::evaluate_single(Individual& member, int choice, double** tsp_data, int random_seed, long srand_offset, int eval_option)
 {
     for(int i = 0; i < options->population_size; i++)
     {
@@ -636,6 +636,9 @@ void Population::genitor(long srand_offset, int eval_option)
 
     parent_1 = nullptr;
     parent_2 = nullptr;
+
+    // TEST
+    // print("POP::genitor: Bottom");
 }
 
 int Population::proportional_selection(long srand_offset)
@@ -856,6 +859,17 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
     for(int i = 0; i < options->chromosome_length; i++)
         edge_map[i] = new int[5];
     
+    // LOG: PARENT CHROMSOMES
+    // log(*options->log_stream, "\nParent 1:");
+    // for(int i = 0; i < options->chromosome_length; i++)
+    //     log(*options->log_stream, parent_1->get_chromosome()[i], " ");
+    // log_endl(*options->log_stream);
+    // log(*options->log_stream, "Parent 2:");
+    // for(int i = 0; i < options->chromosome_length; i++)
+    //     log(*options->log_stream, parent_2->get_chromosome()[i], " ");
+    // log_endl(*options->log_stream);
+    // log_endl(*options->log_stream);
+
     build_edge_map(parent_1, parent_2, edge_map);
     
     // TEST
@@ -868,8 +882,9 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
     int min_edge_count = INT32_MAX;
     bool single_edge = false;
     bool no_other_cities_have_edges = false;
-    int return_city = -1;
+    int repeat_current_city = -1;
     bool edge_map_empty = false;
+    bool first_city_chosen_random = false;
 
     // TEST
     bool test_bool = false;
@@ -879,10 +894,14 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         num_least_edge_cities = 0;
         min_edge_count = INT32_MAX;
         int least_edge_cities[100];
+        int random_cities[1000];
+        int num_random_cities = 0;
+        bool random_city_chosen = false;
         single_edge = false;
 
-        // TEST
+        // LOG
         // LOGGING EDGE MAP //////////////////////////////////////////////////
+        // log(*options->log_stream, "EDGE MAP:");
         // for(int i = 0; i < options->chromosome_length; i++)
         // {
         //     int edge_cnt = edge_map[i][0];
@@ -896,7 +915,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         //     log_endl(*options->log_stream);
         // }
         // log_endl(*options->log_stream);
-        // // END EDGE_MAP LOG //////////////////////////////////////////////////
+        // END EDGE_MAP LOG //////////////////////////////////////////////////
         // log(*options->log_stream, "CHILD:");
         // for(int i = 0; i < cities_appended_to_child; i++)
         //     log(*options->log_stream, child.get_chromosome()[i], " ");
@@ -909,7 +928,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
             previous_city = child.get_chromosome()[cities_appended_to_child - 1];
             single_edge = true;
             
-            // TEST
+            // LOG
             // log(*options->log_stream, "Current city only has one edge remaining");
             // log(*options->log_stream, "Next current city = ", current_city);
             // log(*options->log_stream, "previous city = ", previous_city);
@@ -920,19 +939,27 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
             int zero_edge_count = 0;
             for(int i = 0; i < options->chromosome_length; i++)
             {
-                if(cities_appended_to_child == 0 || edge_map[current_city - 1][0] == 0)
+                // PREVIOUS IMPLEMENTATION FOR (cities_appended_to_child == 0 || edge_map[current_city - 1][0] == 0) CONDITION TO CHOOSE NEXT CITY WITH MIN EDGES
+                // NOW ONLY IF (cities_appended_to_child == 0), AND BELOW WILL RANDOMLY CHOOSE CITY FOR RANDOMIZE IF (edge_map[current_city - 1][0] == 0) CONDITION.(CB231214)
+                // if(cities_appended_to_child == 0 || edge_map[current_city - 1][0] == 0)
+                if(cities_appended_to_child == 0)
                 {
-                    // TEST
-                    // log(*options->log_stream, "(edge_map[current_city - 1][0] == 0 && current_city != -1)");
+                    // LOG
+                    // log(*options->log_stream, i + 1, " (cities_appended_to_child == 0)", true);
                     // log_endl(*options->log_stream);
 
-                    if(edge_map[i][0] < min_edge_count && edge_map[i][0] != 0)
-                        min_edge_count = edge_map[i][0];
+                    // if(edge_map[i][0] < min_edge_count && edge_map[i][0] != 0) // ORIGINAL, SEE NOTE ABOVE.(CB231214)
+                    // if(edge_map[i][0] < min_edge_count) // SECONDARY ORIGINAL. NOW IMPLEMENTING FIRST PICK RANDOM.(CB231214)
+                    //     min_edge_count = edge_map[i][0];
+
+                    random_city_chosen = true;
+
                 }
+                // else if(edge_check(edge_map, current_city, i + 1) && edge_map[i][0] < min_edge_count) // ORIGINAL, SEE NOTE ABOVE.(CB231214)
                 else if(edge_check(edge_map, current_city, i + 1) && edge_map[i][0] < min_edge_count)
                 {
                 
-                    // TEST
+                    // LOG
                     // log(*options->log_stream, "finding min_edge_count");
                     // log(*options->log_stream, "current city = ", current_city);
                     // log(*options->log_stream, "current edge = ", (i + 1));
@@ -943,33 +970,47 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
 
                 if(edge_map[i][0] == 0)
                     zero_edge_count++;
+
                 if(zero_edge_count == (options->chromosome_length - 1) && !no_other_cities_have_edges)
                 {
                     no_other_cities_have_edges = true;
-                    return_city = current_city;
+                    repeat_current_city = current_city;
                 }
+
                 if(zero_edge_count == options->chromosome_length)
                     edge_map_empty = true;
+
+                if(current_city != -1 && edge_map[current_city - 1][0] == 0 && edge_map[i][0] != 0)
+                {
+                    random_cities[num_random_cities++] = i + 1;
+                    if(!random_city_chosen)
+                        random_city_chosen = true;
+                }
+
             }
            
-            // TEST
+            // LOG
             // log(*options->log_stream, "min_edge_count = ", min_edge_count);
             // log(*options->log_stream, "no_other_cities_have_edges = ", no_other_cities_have_edges);
+            // log(*options->log_stream, "edge_map_empty = ", edge_map_empty);
+            // log(*options->log_stream, "random_city_chosen = ", random_city_chosen);
             // log_endl(*options->log_stream);
             
-            if(!no_other_cities_have_edges && !edge_map_empty)
+            if(!no_other_cities_have_edges && !edge_map_empty && !random_city_chosen)
             {
                 for(int i = 0; i < options->chromosome_length; i++)
                 {
-                    if(cities_appended_to_child == 0 || edge_map[current_city - 1][0] == 0)
+                    // DUE TO RANDOMIZING FOR (edge_map[current_city - 1][0] == 0) CONDITION.(CB231214)
+                    // if(cities_appended_to_child == 0 || edge_map[current_city - 1][0] == 0) // ORIGINAL.(CB231214)
+                    if(cities_appended_to_child == 0) // THIS WILL NEED TO BE REMOVED IF RANDOMIZING THE FIRST CITY.(CB231214)
                     {
                         if(edge_map[i][0] == min_edge_count)
                             least_edge_cities[num_least_edge_cities++] = (i + 1);
                     }
                     else if(edge_check(edge_map, current_city, i + 1) && edge_map[i][0] == min_edge_count)
                     {
-                        // TEST
-                        // log(*options->log_stream, "adding edge");
+                        // LOG
+                        // log(*options->log_stream, "adding edge to least_edge_cities");
                         // log(*options->log_stream, "current city = ", current_city);
                         // log(*options->log_stream, "current edge = ", (i + 1));
                         // log_endl(*options->log_stream);
@@ -979,16 +1020,18 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
                 }
             }
 
-            // TEST
+            // LOG
             // log(*options->log_stream, "num_least_edge_cities = ", num_least_edge_cities);
             // log_endl(*options->log_stream);
         }
 
-        if(num_least_edge_cities == 0 && !single_edge && !no_other_cities_have_edges && !edge_map_empty)
+        // if(num_least_edge_cities == 0 && !single_edge && !no_other_cities_have_edges && !edge_map_empty) // ORIGINAL, SEE COMMENT ABOVE OF SAME DATE ON RANDOMIZING.(CB231214)
+        if(num_least_edge_cities == 0 && !single_edge && !no_other_cities_have_edges && !edge_map_empty && !random_city_chosen) // THIS IS A FIX. SHOULD BE COMMENTED OUT, PROGRAM RAN AND LOGGED, AND ULTIMATELY REFACTORED
         {
-            // TEST
+            // LOG
             // LOGGING EDGE MAP ////////////////////////////////////////////////
             // log(*options->log_stream, "if(num_least_edge_cities == 0)");
+            // log(*options->log_stream, "Edge Map:");
             // for(int i = 0; i < options->chromosome_length; i++)
             // {
             //     int edge_cnt = edge_map[i][0];
@@ -1015,7 +1058,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
                     least_edge_cities[num_least_edge_cities++] = (i + 1);
             }
 
-            // TEST
+            // LOG
             // log(*options->log_stream, "min_edge_count = ", min_edge_count);
             // log(*options->log_stream, "num_least_edge_cities = ", num_least_edge_cities);
             // log_endl(*options->log_stream);
@@ -1024,32 +1067,69 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         {
             int index = -1;
             
-            if(!no_other_cities_have_edges && !edge_map_empty)
+            // if(!no_other_cities_have_edges && !edge_map_empty) // ORIGINAL, SEE COMMENT ABOVE OF SAME DATE ON RANDOMIZING.(CB231214)
+            if(!no_other_cities_have_edges && !edge_map_empty && !random_city_chosen)
             {
                 index = random_index_in_range(0, num_least_edge_cities, options->random_seed, srand_offset + cities_appended_to_child);
                 current_city = least_edge_cities[index];
 
-                //TEST
-                // log(*options->log_stream, "!!!no_other_cities_have_edge:");
+                // LOG
+                // log(*options->log_stream, "not-single edge");
+                // log(*options->log_stream, "pick from least edge cities:");
                 // log(*options->log_stream, "index= ", index);
                 // log(*options->log_stream, "current city = ", current_city);
                 // log_endl(*options->log_stream);
             }
-            else if(!edge_map_empty)
+            // else if(!edge_map_empty) // ORIGINAL, SEE COMMENT ABOVE OF SAME DATE ON RANDOMIZING.(CB231214)
+            else if(!edge_map_empty && !random_city_chosen)
             {
                 int num_edges = edge_map[current_city - 1][0];
                 index = random_index_in_range(0, num_edges, options->random_seed, srand_offset + cities_appended_to_child);
                 current_city = edge_map[current_city - 1][index + 1];
-
-                //TEST
-                // log(*options->log_stream, "no_other_cities_have_edge:");
+ 
+                // LOG
+                // log(*options->log_stream, "not-single edge");
+                // log(*options->log_stream, "no other cities have edges:");
                 // log(*options->log_stream, "index + 1 = ", index + 1);
                 // log(*options->log_stream, "current city = ", current_city);
                 // log_endl(*options->log_stream);
             }
+            // NEW ELSE-IF FOR RANDOMIZING WHEN CURRENT CITY HAS NO EDGES; SEE COMMENTS ABOVE OF SAME DATE.(CB231214)
+            else if(!edge_map_empty)
+            {
+                if(first_city_chosen_random)
+                {
+                    index = random_index_in_range(0, num_random_cities, options->random_seed, srand_offset + cities_appended_to_child);
+                    current_city = random_cities[index];
+                    
+                    // LOG
+                    // log(*options->log_stream, "RANDOM CITY!!");
+                    // log(*options->log_stream, "not-single edge");
+                    // log(*options->log_stream, "random city:");
+                    // log(*options->log_stream, "Random city choices:");
+                    // for(int i = 0; i < num_random_cities; i++)
+                    //     log(*options->log_stream, random_cities[i], " ");
+                    // log_endl(*options->log_stream);
+                    // log(*options->log_stream, "index + 1 = ", index + 1);
+                    // log(*options->log_stream, "current city = ", current_city);
+                    // log_endl(*options->log_stream);
+                }
+                else
+                {
+                    index = random_index_in_range(0, options->chromosome_length, options->random_seed, srand_offset + cities_appended_to_child);
+                    current_city = index + 1;
+                    first_city_chosen_random = true;
+                    
+                    // LOG
+                    // log(*options->log_stream, "FIRST RANDOM CITY!!");
+                    // log(*options->log_stream, "current city = ", current_city);
+                    // log_endl(*options->log_stream);
+                }
+
+            }
 
         }
-        if(edge_map_empty)
+        if(edge_map_empty) // THIS IS A CLEANUP - SHOULD BE REFACTORED.(CB231214)
         {
             int final_choices[100];
             int final_choice_count = 0;
@@ -1073,7 +1153,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
             while(cities_appended_to_child != options->chromosome_length)
             {
                 index = random_index_in_range(0, final_choice_count, options->random_seed, srand_offset + cities_appended_to_child);
-                child.get_chromosome()[cities_appended_to_child++] = final_choices[index];
+                child.get_chromosome()[cities_appended_to_child++] = final_choices[index]; // CONSIDER RANDOMLY INSERTING THESE RATHER THAN APPENDING.(CB231214)
                 final_choice_count--;
                 for(int i = index; i < final_choice_count; i++)
                 {
@@ -1081,7 +1161,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
                 }
             }
 
-            // TEST
+            // LOG
             // log(*options->log_stream, "edge_map empty:");
             // log(*options->log_stream, "CHILD:");
             // for(int i = 0; i < cities_appended_to_child; i++)
@@ -1093,7 +1173,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         
         if(!edge_map_empty)
         {
-            // TEST
+            // LOG
             // log(*options->log_stream, "current_city to append = ", current_city);
             // log_endl(*options->log_stream);
     
@@ -1103,8 +1183,9 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
     
             if(!no_other_cities_have_edges)
             {
-                // TEST
-                // log(*options->log_stream, "!!!no_other_cities_have_edges: rebuild edge map");
+                // LOG
+                // log(*options->log_stream, "other cities still have edges");
+                // log(*options->log_stream, "rebuild edge map");
                 // log_endl(*options->log_stream);
 
                 rebuild_edge_map(edge_map, current_city, previous_city);
@@ -1112,16 +1193,17 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
             else
             {
                 rebuild_edge_map(edge_map, current_city, -1);
-                current_city = return_city;
+                current_city = repeat_current_city;
 
-                // TEST
-                // log(*options->log_stream, "no_other_cities_have_edges: rebuild edge map");
+                // LOG
+                // log(*options->log_stream, "no_other_cities_have_edges");
+                // log(*options->log_stream, "rebuild edge map");
                 // log(*options->log_stream, "current city = previous city = ", current_city);
                 // log_endl(*options->log_stream);
             }
         }
 
-        //TEST
+        // LOG
         // else
         // {
         //     log(*options->log_stream, "POP::ER_XOVER: Edge Map Empty -> DIDN'T ENTER ANY OF THE OTHER STUFF");
@@ -1131,7 +1213,7 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         // log_endl(*options->log_stream);
     }
 
-    // TEST
+    // LOG
     // log(*options->log_stream, "POP::ER_XOVER: End");
     // log_endl(*options->log_stream);
 
@@ -1139,6 +1221,9 @@ void Population::edge_recombination(Individual* parent_1, Individual* parent_2, 
         delete[] edge_map[i];
     delete[] edge_map;
     
+    // TEST
+    // print("END OF ER XOVER");
+    // cin();
 }
 
 void Population::build_edge_map(Individual* parent_1, Individual* parent_2, int** edge_map)
@@ -1156,6 +1241,7 @@ void Population::build_edge_map(Individual* parent_1, Individual* parent_2, int*
     int city_edge_21;
     int city_edge_22;
     int edge_count;
+
     for(int j = 0; j < options->chromosome_length; j++)
     {
         if(j == 0)

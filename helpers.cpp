@@ -114,6 +114,7 @@ void endl()
 void cin()
 {
     char temp;
+    std::cout << "cin():" << std::endl;
     std::cin >> temp;
 }
 
@@ -143,9 +144,12 @@ void log(std::ofstream& out, std::string message, double number, int precision)
     out <<  message << std::fixed << std::setprecision(precision) << number << std::endl;
 }
 
-void log(std::ofstream& out, int number, std::string message)
+void log(std::ofstream& out, int number, std::string message, bool endline /*=false*/)
 {
-    out << number << message;
+    if(!endline)
+        out << number << message;
+    else
+        out << number << message << std::endl;
 }
 
 void log_endl(std::ofstream& out)
@@ -440,7 +444,7 @@ void menu_choice_with_dynamic_truncation(int argc, int argc_current, int total_m
 
 void choice_with_dynamic_truncation(bool& complete, int argc, int argc_current, int menu_level, int total_menu_items, int& choice)
 {
-    if(argc <= argc_current)
+    if(argc < argc_current)
     {
         one:
         choice = int_choice();

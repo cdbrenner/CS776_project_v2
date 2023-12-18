@@ -1,24 +1,24 @@
 #include "ga.h"
 
-GA::GA(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream, std::string tsp_filename)
+GA::GA(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int pop_size, int max_generations, int chromosome_length, std::ofstream& log_stream, std::string tsp_filename)
 {
-    options.tsp_data = new int*[chromosome_length];
+    options.tsp_data = new double*[chromosome_length];
     for(int i = 0; i < chromosome_length; i++)
     {
-        options.tsp_data[i] = new int[chromosome_length];
+        options.tsp_data[i] = new double[chromosome_length];
         for(int j = 0; j < chromosome_length; j++)
             options.tsp_data[i][j] = -1;
     }
 
-    setup_options(iterator, problem_type, ga_variant_option, ga_variant_name_abbreviation, mutation_rate, xover_rate, chromosome_length, log_stream);
+    setup_options(iterator, problem_type, ga_variant_option, ga_variant_name_abbreviation, mutation_rate, xover_rate, pop_size, max_generations, chromosome_length, log_stream);
 }
 
 GA::GA(int population_size, double mutation_rate, double xover_rate, int chromosome_length, int iteration, std::string tsp_filename, std::ofstream& log)
 {
-    options.tsp_data = new int*[chromosome_length];
+    options.tsp_data = new double*[chromosome_length];
     for(int i = 0; i < chromosome_length; i++)
     {
-        options.tsp_data[i] = new int[chromosome_length];
+        options.tsp_data[i] = new double[chromosome_length];
         for(int j = 0; j < chromosome_length; j++)
             options.tsp_data[i][j] = -1;
     }
@@ -78,7 +78,7 @@ GA::~GA()
     delete[] options.tsp_data;
 }
 
-void GA::setup_options(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int chromosome_length, std::ofstream& log_stream)
+void GA::setup_options(int iterator, std::string problem_type, int ga_variant_option, std::string ga_variant_name_abbreviation, double mutation_rate, double xover_rate, int pop_size, int max_generations, int chromosome_length, std::ofstream& log_stream)
 {
     options.log_stream = &log_stream;
 
@@ -93,15 +93,20 @@ void GA::setup_options(int iterator, std::string problem_type, int ga_variant_op
     options.super_individual_threshold = 2;
     options.semi_super_individual_threshold = 1.2;
     options.selection_pressure = 1.9;
+    options.converged_overflow_termination_condition = 30000;
     
-    options.population_size = 200; //POPULATION SIZE CANNOT EQUAL ODD NUMBER OR SEGMENT FAULT!!!
-    options.max_generations = 30000;
+    options.population_size = pop_size; //POPULATION SIZE CANNOT EQUAL ODD NUMBER OR SEGMENT FAULT!!!
+    options.max_generations = max_generations;
 
     std::string temp_1;
     std::string temp_2;
+    std::string temp_3;
+    std::string temp_4;
     string_stream(temp_1, options.xover_rate, 2);
     string_stream(temp_2, options.mutation_rate, 3);
-    options.parameter_str =  temp_2 + "M_" + temp_1 + "X";
+    string_stream(temp_3, options.population_size, 0);
+    string_stream(temp_4, options.max_generations, 0);
+    options.parameter_str =  temp_2 + "M_" + temp_1 + "X_" + temp_3 + "P_" + temp_4 + "G";
     options.problem_type = problem_type;
     options.ga_variant_name_abbreviation = ga_variant_name_abbreviation;
     set_option_output_files(std::to_string(iterator));
@@ -154,9 +159,9 @@ void GA::set_tsp_tour_name(std::string tsp_filename)
 {
     int j = 0;
     bool verify_dir = false;
-    while(!verify_dir)
+    while(!verify_dir && j!=tsp_filename.length())
     {
-        if(tsp_filename[j++] == '/')
+        if(j!=tsp_filename.length() && tsp_filename[j++] == '/')
             verify_dir = true;
     }
     if(!verify_dir)
@@ -254,16 +259,23 @@ void GA::run(int eval_option, int report_option)
 
 void GA::run_genitor(long srand_offset)
 {
+    // int converged_count = 0;
     for(int i = 1; i < options.max_generations; i++)
     {
         parent->genitor(i*srand_offset, m_eval_option);
         parent->stats(total_super_individuals, total_semi_super_individuals);
         if(options.reporting_option == 1)
             parent->report(i, 1, total_super_individuals, total_semi_super_individuals, 0);
+        
+        // if(parent->get_convergence() == 1)
+        //     converged_count++;
+
+        // if(converged_count == options.converged_overflow_termination_condition)
+        //     options.max_generations = i;
     }
 }
 
-void GA::run_genitor_on_imGui(long srand_offset)
+void GA::run_genitor_on_imGui(long srand_offset, int iteration)
 {
     // TEST
     // print("GA::run_genitor_on_imGui");
@@ -271,8 +283,10 @@ void GA::run_genitor_on_imGui(long srand_offset)
     if(srand_offset == 0)
     {
         // TEST
-        // print("IN IF: iteration = ", srand_offset);
+        // print("GA::IM_GUI::IF: iteration = ", srand_offset);
+        // cin();
 
+        options.GA_iteration = iteration;
         parent = new Population(options);
         try
         {
@@ -280,17 +294,26 @@ void GA::run_genitor_on_imGui(long srand_offset)
             parent->stats(total_super_individuals, total_semi_super_individuals);
             parent->report_single();
             parent->write_population_to_file();
+            
+            // TEST
+            // print("AFTER WRITING POP");
         }
         catch(std::string error_message)
         {
+            delete parent;
+            parent = nullptr;
             throw(error_message);
         }
+        delete parent;
+        parent = nullptr;
     }
     else
     {
         // TEST
-        // print("IN ELSE: iteration = ", srand_offset);
+        // print("GA::IM_GUI::ELSE: iteration = ", srand_offset);
+        // cin();
 
+        options.GA_iteration = iteration;
         std::ifstream in("population.txt");
         parent = new Population(options, in);
         in.close();
@@ -301,11 +324,18 @@ void GA::run_genitor_on_imGui(long srand_offset)
             parent->stats(total_super_individuals, total_semi_super_individuals);
             parent->report_single();
             parent->write_population_to_file();
+
+            // TEST
+            // print("AFTER WRITING POP");
         }
         catch(std::string error_message)
         {
+            delete parent;
+            parent = nullptr;
             throw(error_message);
         }
+        delete parent;
+        parent = nullptr;
     }
 }
 
@@ -365,7 +395,9 @@ void GA::report_averager(int total_run_count)
             temp_objective_data[i][j] = 0;
         }
     }
-    
+
+    int best = INT32_MAX;
+    int current_best = INT32_MAX;
     for(int i = 0; i < total_run_count; i++)
     {
         std::string filename = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_" + std::to_string(i) + ".txt";
@@ -392,6 +424,16 @@ void GA::report_averager(int total_run_count)
                     getline(in_o,temp_2,',');
                     temp_fitness_data[k-2][j] += std::strtod(temp_1.c_str(), NULL);
                     temp_objective_data[k-2][j] += std::strtod(temp_2.c_str(), NULL);
+
+                    if(k == ((options.max_generations + 2) - 1) && j == 1)
+                    {
+                        current_best = std::strtod(temp_2.c_str(), NULL);
+                        if(best > current_best)
+                            best = current_best;
+                     
+                        // TEST
+                        std::cout << "run " << i << ": " << temp_2 << std::endl;
+                    }
                 }
              
                 getline(in,temp_1);
@@ -401,7 +443,19 @@ void GA::report_averager(int total_run_count)
 
         in.close();
         in_o.close();
+        
+        // WILL CAUSE AUTOMATIC TRANSFER INTO DIRECTORY TO FAIL UNLESS I KEEP A MEMORY OF THE "current_best" VALUE, AND PROVIDE THAT TO THE
+        // SEARCH OF EACH FILE WHEN LOOKING FOR FILES TO PUT INTO THE NEWLY CREATED DIRECTORY
+        // std::string temp_rename = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_" 
+        //                             + std::to_string(i) + "_Obj_" + std::to_string(current_best) + "B.txt";
+        // std::filesystem::rename(filename_o, temp_rename);
     }
+
+    // TEST
+    print("AVERAGER:: max generations = ", options.max_generations);
+    print("Sum before average of last min objective element = ", temp_objective_data[options.max_generations - 1][1]);
+    endl();
+    // cin();
     
     for(int i = 0; i < options.max_generations; i++)
     {
@@ -411,6 +465,14 @@ void GA::report_averager(int total_run_count)
             temp_objective_data[i][j] /= total_run_count;
         }
     }
+
+    int average_best = temp_objective_data[options.max_generations - 1][1];
+
+    // TEST
+    print("run count = ", total_run_count);
+    print("Actual average of last min objective element = ", temp_objective_data[options.max_generations - 1][1]);
+    endl();
+    // cin();
 
     std::string out_filename = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_AVE.txt";
     std::string out_filename_o = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_AVE_Obj.txt";
@@ -439,6 +501,43 @@ void GA::report_averager(int total_run_count)
     }
     delete[] temp_fitness_data;
     delete[] temp_objective_data;
+
+    int dir_count = 1;
+    std::string temp_dir = "_" + options.problem_type + "_" + std::to_string(average_best) + "A_" + std::to_string(best)  + "B_" + std::to_string(dir_count);
+    struct stat sb;
+    one:
+    if(stat(temp_dir.c_str(), &sb) == 0)
+    {
+        temp_dir = "_" + m_tsp_tour_name + "_" + std::to_string(++dir_count);
+        goto one;
+    }
+    mkdir(temp_dir.c_str(), S_IRWXU);
+    
+    std::string temp_filename_1;
+    std::string temp_filename_2;
+    std::string temp_filename_o_1;
+    std::string temp_filename_o_2;
+    for(int i = 0; i < total_run_count + 1; i++)
+    {
+        if(i != total_run_count)
+        {
+            temp_filename_1 = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_" + std::to_string(i) + ".txt";
+            temp_filename_2 = temp_dir + "/" + temp_filename_1;
+            std::filesystem::rename(temp_filename_1, temp_filename_2);
+            temp_filename_o_1 = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_" + std::to_string(i) + "_Obj.txt";
+            temp_filename_o_2 = temp_dir + "/" + temp_filename_o_1;
+            std::filesystem::rename(temp_filename_o_1, temp_filename_o_2);
+        }
+        else
+        {
+            temp_filename_1 = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_AVE.txt";
+            temp_filename_2 = temp_dir + "/" + temp_filename_1;
+            std::filesystem::rename(temp_filename_1, temp_filename_2);
+            temp_filename_o_1 = options.problem_type + "_" + options.ga_variant_name_abbreviation + "_" + options.parameter_str + "_AVE_Obj.txt";
+            temp_filename_o_2 = temp_dir + "/" + temp_filename_o_1;
+            std::filesystem::rename(temp_filename_o_1, temp_filename_o_2);
+        }
+    }
 }
 
 Options GA::get_options() const
@@ -497,10 +596,10 @@ void GA::set_tsp_data_option(std::string filename)
                 set_tsp_LTM_data_option(in);
                 m_eval_option = 1;
                 break;
-            case 2: // 
+            case 2: // EDGE_WEIGHT_TYPE: EUC_2D or GEO
                 in.clear();
                 in.seekg(0);
-                set_tsp_EUC2D_data_option(in);
+                set_tsp_COORDS_data_option(in);
                 m_eval_option = 2;
                 break;
             default:
@@ -542,7 +641,7 @@ int GA::get_tsp_specs(std::ifstream& in)
         }
         else if(temp_1 == "GEO")
         {
-            a = 3;
+            a = 2;
             options.tsp_edge_weight_format = 3;
         }
         // EXPAND IF-STATEMENTS HERE FOR MORE SPECS IF NEEDED
@@ -607,7 +706,7 @@ void GA::set_tsp_LTM_data_option(std::ifstream& in)
         throw(std::string("GA::set_tsp_LTM_data: TSP file doesn't exist. Program aborted."));
 }
 
-void GA::set_tsp_EUC2D_data_option(std::ifstream& in)
+void GA::set_tsp_COORDS_data_option(std::ifstream& in)
 {
     std::string temp;
     while(temp != "NODE_COORD_SECTION")

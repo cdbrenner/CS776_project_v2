@@ -29,9 +29,10 @@ struct Options
     int extinction_delay;
     double super_individual_threshold;
     double semi_super_individual_threshold;
+    int converged_overflow_termination_condition;
 
     // TSP
-    int** tsp_data;
+    double** tsp_data;
     int tsp_edge_weight_format = -1;
     
     //INDIVIDUAL::TRANSFORM_DATA INDICES

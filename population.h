@@ -87,8 +87,8 @@ class Population
         // void set_member_chosen_count();
         void get_member_chosen_stats();
 
-        void evaluate(int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option);
-        void evaluate_single(Individual&, int choice, int** tsp_data, int random_seed, long srand_offset, int eval_option);
+        void evaluate(int choice, double** tsp_data, int random_seed, long srand_offset, int eval_option);
+        void evaluate_single(Individual&, int choice, double** tsp_data, int random_seed, long srand_offset, int eval_option);
         void stats(int& total_super_individuals, int& total_semi_super_individuals);
         void report(int generation, int option, int total_super_individuals, int total_semi_super_individuals, bool extinction_event);
         void report_single();

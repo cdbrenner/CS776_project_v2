@@ -31,7 +31,7 @@ void log(std::ofstream&, std::string, int);
 void log(std::ofstream&, int, std::string, int, std::string);
 void log(std::ofstream&, std::string, double);
 void log(std::ofstream&, std::string, double, int);
-void log(std::ofstream&, int, std::string);
+void log(std::ofstream&, int, std::string, bool endline=false);
 void log_endl(std::ofstream&);
 void delete_log(std::ofstream&);
 
